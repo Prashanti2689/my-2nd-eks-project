@@ -1,0 +1,46 @@
+image:
+  name: registry.gitlab.com/gitlab-org/gitlab-build-image:terraform
+  entrypoint:
+    - '/usr/bin/env'
+    - 'PATH=/usr/local/sbin:usr/local/bin:usr/sbin:usr/bin:/sbin:/bin'
+
+before:
+    - terraform --version
+    - terraform init
+
+      
+    stages:
+      -validate
+      -plan 
+      -apply
+      -destroy
+
+    validate:
+      stage: validate
+      script:
+          -terraform validate
+          
+    plan:
+      stage: plan
+      dependencies:
+          -validate
+      script:
+          -terraform plan -out="planfile"
+      artifacts:
+          paths:
+              - planfile
+
+   apply:
+      stage: apply
+      dependencies:
+          -plan
+      script:
+          -terraform apply -input=false "planfile"
+
+ destroy:
+       stage: apply
+      dependencies:
+          -plan
+      script:
+          -terraform destroy -auto-approve
+      
