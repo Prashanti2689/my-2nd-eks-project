@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main  # Adjust this if you want to trigger on different branches
+  workflow_dispatch:  # Allows you to manually trigger the workflow
 
 jobs:
   terraform:
@@ -18,15 +19,15 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.0.0  # Specify the version of Terraform you want to use
+          terraform_version: 1.7.4  # Specify the version of Terraform you want to use
 
       - name: Cache Terraform
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: .terraform
           key: ${{ runner.os }}-terraform-${{ hashFiles('**/*.tf') }}
@@ -43,7 +44,7 @@ jobs:
         run: terraform plan -out="planfile"
 
       - name: Terraform Apply
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         run: terraform apply -input=false "planfile"
 
       - name: Terraform Destroy
