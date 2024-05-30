@@ -10,6 +10,12 @@ jobs:
     name: Terraform
     runs-on: ubuntu-latest
 
+    env:
+      TF_VAR_gitlab_token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.MY_AWS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.MY_AWS_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: "us-east-1"
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -19,19 +25,27 @@ jobs:
         with:
           terraform_version: 1.0.0  # Specify the version of Terraform you want to use
 
-      - name: Terraform Init
-        run: terraform init
+      - name: Cache Terraform
+        uses: actions/cache@v2
+        with:
+          path: .terraform
+          key: ${{ runner.os }}-terraform-${{ hashFiles('**/*.tf') }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-
 
-      - name: Validate
+      - name: Terraform Init
+        run: terraform init -backend-config="tfstate.config"
+
+      - name: Terraform Validate
         run: terraform validate
 
-      - name: Plan
-        run: terraform plan -out=planfile
+      - name: Terraform Plan
+        run: terraform plan -out="planfile"
 
-      - name: Apply
-        if: github.ref == 'refs/heads/main'
-        run: terraform apply -input=false planfile
+      - name: Terraform Apply
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        run: terraform apply -input=false "planfile"
 
-      - name: Destroy
-        if: github.event_name == 'push' && github.ref == 'refs/heads/destroy'
-        run: terraform destroy -auto-approve
+      - name: Terraform Destroy
+        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        run: terraform destroy --auto-approve
