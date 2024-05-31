@@ -1,52 +1,52 @@
-name: Terraform CI/CD Pipeline
+name: Terraform CI/CD
 
 on:
   push:
     branches:
-      - main  # Adjust this if you want to trigger on different branches
-  workflow_dispatch:  # Allows you to manually trigger the workflow
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   terraform:
-    name: Terraform
+    name: 'Terraform'
     runs-on: ubuntu-latest
 
-    env:
-      TF_VAR_gitlab_token: ${{ secrets.GITLAB_ACCESS_TOKEN }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.MY_AWS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.MY_AWS_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: "us-east-1"
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: 'Checkout GitHub Actions repository'
+      uses: actions/checkout@v2
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.7.4  # Specify the version of Terraform you want to use
+    - name: 'Configure AWS credentials'
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-west-2  # Change this to your preferred AWS region
 
-      - name: Cache Terraform
-        uses: actions/cache@v3
-        with:
-          path: .terraform
-          key: ${{ runner.os }}-terraform-${{ hashFiles('**/*.tf') }}
-          restore-keys: |
-            ${{ runner.os }}-terraform-
+    - name: 'Set up Terraform'
+      uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: 1.1.5
 
-      - name: Terraform Init
-        run: terraform init -backend-config="tfstate.config"
+    - name: 'Terraform Init'
+      run: terraform init
 
-      - name: Terraform Validate
-        run: terraform validate
+    - name: 'Terraform Validate'
+      run: terraform validate
 
-      - name: Terraform Plan
-        run: terraform plan -out="planfile"
+    - name: 'Terraform Plan'
+      id: plan
+      run: terraform plan -out=tfplan
 
-      - name: Terraform Apply
-        if: github.ref == 'refs/heads/main'
-        run: terraform apply -input=false "planfile"
+    - name: 'Terraform Apply'
+      if: github.ref == 'refs/heads/main'
+      run: terraform apply -auto-approve tfplan
 
-      - name: Terraform Destroy
-        if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
-        run: terraform destroy --auto-approve
+    # Optional: Save the plan file as an artifact for future reference
+    - name: 'Upload plan file'
+      if: github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v2
+      with:
+        name: tfplan
+        path: tfplan
