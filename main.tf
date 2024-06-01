@@ -1,5 +1,5 @@
 module "vpc" {
-    source = "./vpc"
+    source = "./VPC"
 }
 module "ec2"{
     source = "./web"
