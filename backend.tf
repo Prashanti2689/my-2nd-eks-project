@@ -3,7 +3,7 @@ terraform {
     bucket = "my-practice-bucket-prash"
     key    = "state"
     region = "us-east-1"
-    dynamodb_table = "backend"
+    dynamodb_table = "dynamo-lock"
     
   }
 }

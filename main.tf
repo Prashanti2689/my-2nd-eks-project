@@ -6,3 +6,6 @@ module "ec2"{
     sn = module.vpc.pb-sn
     sg = module.vpc.sg
 }
+module "lambda" {
+    source = "./lambda"
+}
